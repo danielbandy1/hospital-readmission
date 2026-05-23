@@ -1,5 +1,7 @@
 # Hospital 30-Day Readmission Prediction
 
+![CI](https://github.com/danielbandy1/hospital-readmission/actions/workflows/ci.yml/badge.svg)
+
 End-to-end ML system predicting whether a diabetic patient will be readmitted within 30 days of discharge — the core problem driving CMS's Hospital Readmissions Reduction Program (HRRP), which penalizes hospitals up to 3% of Medicare payments for excess readmissions.
 
 ## The Problem
@@ -53,6 +55,8 @@ Raw clinical data required significant transformation before modeling:
 |--------|-------|
 | OOF ROC-AUC | ~0.68 |
 | OOF Average Precision | ~0.28 |
+| Brier score (raw) | ~0.094 |
+| Brier score (calibrated) | ~0.090 |
 
 OOF AUC of 0.68 on this dataset is consistent with published literature — readmission prediction from structured EHR data is a genuinely hard problem. The positive class rate is 11%, making average precision the more informative metric operationally.
 
@@ -109,7 +113,7 @@ uvicorn api.serve:app --port 8000
 
 ## Stack
 
-Python · XGBoost · SHAP · scikit-learn · FastAPI · pandas · Pydantic
+Python · XGBoost · SHAP · scikit-learn · FastAPI · pandas · Pydantic · pytest
 
 ## Author
 

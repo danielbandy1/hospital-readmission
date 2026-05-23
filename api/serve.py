@@ -136,6 +136,8 @@ def predict(record: PatientRecord):
     X = df[feat_cols].astype(np.float32)
 
     prob = float(model.predict_proba(X)[0, 1])
+    if "calibrator" in _bundle:
+        prob = float(_bundle["calibrator"].predict([prob])[0])
 
     if prob >= 0.35:
         tier = "HIGH"

@@ -16,7 +16,9 @@ import numpy as np
 import pandas as pd
 import shap
 import xgboost as xgb
-from sklearn.metrics import roc_auc_score, average_precision_score
+from sklearn.calibration import calibration_curve
+from sklearn.isotonic import IsotonicRegression
+from sklearn.metrics import roc_auc_score, average_precision_score, brier_score_loss
 from sklearn.model_selection import StratifiedKFold
 
 import sys
@@ -45,6 +47,25 @@ XGB_PARAMS = {
     "n_jobs":           -1,
     "verbosity":        0,
 }
+
+
+def _plot_calibration(y_true, raw_probs, cal_probs, save_path):
+    import matplotlib.pyplot as plt
+    fig, ax = plt.subplots(figsize=(6, 6))
+    for probs, label, ls in [
+        (raw_probs, "XGBoost (raw)", "--"),
+        (cal_probs, "Isotonic calibrated", "-"),
+    ]:
+        frac_pos, mean_pred = calibration_curve(y_true, probs, n_bins=15)
+        ax.plot(mean_pred, frac_pos, marker="o", ms=4, ls=ls, label=label)
+    ax.plot([0, 1], [0, 1], "k:", lw=1, label="Perfect calibration")
+    ax.set_xlabel("Mean predicted probability")
+    ax.set_ylabel("Fraction of positives")
+    ax.set_title("Calibration Curve — 30-Day Readmission")
+    ax.legend()
+    plt.tight_layout()
+    plt.savefig(save_path, dpi=150, bbox_inches="tight")
+    plt.close()
 
 
 def main():
@@ -99,14 +120,28 @@ def main():
 
     oof_auc = roc_auc_score(y, oof_probs)
     oof_ap  = average_precision_score(y, oof_probs)
+    oof_brier = brier_score_loss(y, oof_probs)
     print(f"\nOOF ROC-AUC : {oof_auc:.4f}  (std={np.std(fold_aucs):.4f})")
     print(f"OOF Avg Prec: {oof_ap:.4f}")
+    print(f"OOF Brier   : {oof_brier:.4f}  (lower is better; baseline={y.mean()*(1-y.mean()):.4f})")
 
     print("\nFull classification report (threshold=0.5):")
     print_metrics(y.values, oof_probs)
 
+    print("\nFitting isotonic calibrator on OOF predictions...", flush=True)
+    calibrator = IsotonicRegression(out_of_bounds="clip")
+    calibrator.fit(oof_probs, y.values)
+    cal_probs  = calibrator.predict(oof_probs)
+    cal_brier  = brier_score_loss(y, cal_probs)
+    cal_auc    = roc_auc_score(y, cal_probs)
+    print(f"  Post-calibration AUC  : {cal_auc:.4f}  (should match pre-cal)")
+    print(f"  Post-calibration Brier: {cal_brier:.4f}  (vs {oof_brier:.4f} pre-cal)")
+
     plot_roc_pr(y.values, oof_probs, save_path=FIGURE_DIR / "roc_pr_curves.png")
     print(f"Curves saved → {FIGURE_DIR}/roc_pr_curves.png")
+
+    _plot_calibration(y.values, oof_probs, cal_probs, FIGURE_DIR / "calibration_curve.png")
+    print(f"Calibration curve saved → {FIGURE_DIR}/calibration_curve.png")
 
     print("\nRetraining on full data...", flush=True)
     params_full = {k: v for k, v in XGB_PARAMS.items()
@@ -116,7 +151,7 @@ def main():
     final_model.fit(X, y, verbose=False)
 
     model_path = MODEL_DIR / "readmission_xgb.joblib"
-    joblib.dump({"model": final_model, "feature_cols": feature_cols}, model_path)
+    joblib.dump({"model": final_model, "feature_cols": feature_cols, "calibrator": calibrator}, model_path)
     print(f"Model saved → {model_path}")
 
     if not args.no_shap:
