@@ -7,24 +7,19 @@ Run:
 """
 import pathlib
 import sys
+from contextlib import asynccontextmanager
 sys.path.insert(0, str(pathlib.Path(__file__).parent.parent))
 
 import joblib
 import numpy as np
 import pandas as pd
 from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 import shap
 
 MODEL_PATH = pathlib.Path(__file__).parent.parent / "models" / "readmission_xgb.joblib"
 
-app = FastAPI(
-    title="Hospital 30-Day Readmission Risk",
-    description="Predicts probability of a diabetic patient being readmitted within 30 days.",
-    version="1.0.0",
-)
-
-_bundle  = None
+_bundle   = None
 _explainer = None
 
 
@@ -33,6 +28,20 @@ def _load():
     if _bundle is None:
         _bundle = joblib.load(MODEL_PATH)
         _explainer = shap.TreeExplainer(_bundle["model"])
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    _load()
+    yield
+
+
+app = FastAPI(
+    title="Hospital 30-Day Readmission Risk",
+    description="Predicts probability of a diabetic patient being readmitted within 30 days.",
+    version="1.0.0",
+    lifespan=lifespan,
+)
 
 
 class PatientRecord(BaseModel):
@@ -82,19 +91,13 @@ class PatientRecord(BaseModel):
     metformin_rosiglitazone: str = Field("No", alias="metformin-rosiglitazone")
     metformin_pioglitazone: str = Field("No", alias="metformin-pioglitazone")
 
-    class Config:
-        populate_by_name = True
+    model_config = ConfigDict(populate_by_name=True)
 
 
 class RiskResponse(BaseModel):
     readmit_prob_30d: float
     risk_tier: str
     top_risk_factors: list[dict]
-
-
-@app.on_event("startup")
-def startup():
-    _load()
 
 
 @app.get("/health")

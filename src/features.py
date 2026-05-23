@@ -55,7 +55,7 @@ def build_features(df: pd.DataFrame) -> pd.DataFrame:
     df = df.copy()
 
     df.drop(columns=[c for c in DROP_COLS if c in df.columns], inplace=True)
-    df.replace("?", np.nan, inplace=True)
+    df = df.mask(df == "?")
 
     df["age_num"] = df["age"].map(AGE_MAP).astype(float)
     df.drop(columns=["age"], inplace=True)
