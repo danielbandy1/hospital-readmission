@@ -17,7 +17,13 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, ConfigDict, Field
 import shap
 
-MODEL_PATH = pathlib.Path(__file__).parent.parent / "models" / "readmission_xgb.joblib"
+MODEL_DIR = pathlib.Path(__file__).parent.parent / "models"
+MODEL_CANDIDATES = [
+    MODEL_DIR / "readmission_lgb.joblib",
+    MODEL_DIR / "readmission_xgb.joblib",
+    MODEL_DIR / "readmission.pkl",
+]
+MODEL_PATH = next((path for path in MODEL_CANDIDATES if path.exists()), MODEL_CANDIDATES[-1])
 
 _bundle   = None
 _explainer = None

@@ -1,0 +1,11 @@
+{
+  "model_artifact": "models/readmission_xgb.joblib",
+  "uncalibrated_auc": 0.727849936677614,
+  "uncalibrated_auprc": 0.28583385904541975,
+  "uncalibrated_brier": 0.12492988258600235,
+  "uncalibrated_ece": 0.18126658970368412,
+  "isotonic_auc": 0.7275631454967966,
+  "isotonic_auprc": 0.2775828404813911,
+  "isotonic_brier": 0.0905691608786583,
+  "isotonic_ece": 0.0018702425959386735
+}

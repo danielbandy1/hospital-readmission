@@ -10,12 +10,34 @@ Hospital readmission within 30 days is one of the most studied quality metrics i
 
 This project builds a production-ready readmission scoring system that answers four questions a clinical team actually asks:
 
-1. **Who is likely to come back within 30 days?** → XGBoost classifier, ROC-AUC ~0.68
+1. **Who is likely to come back within 30 days?** -> XGBoost classifier (ROC-AUC 0.727, AUPRC 0.285) plus LightGBM Optuna tracking (metrics pending)
 2. **Why?** → Per-patient SHAP explanations surfaced in the API response
 3. **Which risk tier?** → Low / Moderate / High at calibrated thresholds
 4. **Deployed where?** → FastAPI REST endpoint, JSON in / JSON out
 
 ---
+
+## Quick Results
+
+| Result | Value |
+|---|---:|
+| Feature count | 65 engineered features |
+| Feature expansion | 43 raw/model-ready fields -> 65 after clinical feature expansion |
+| XGBoost ROC-AUC | 0.7268 |
+| XGBoost AUPRC | 0.2853 |
+| LightGBM ROC-AUC | pending |
+| LightGBM AUPRC | pending |
+
+The current production artifact is `models/readmission_xgb.joblib`. MCC LightGBM artifact not available locally yet.
+
+Top 5 SHAP drivers:
+- `discharge_disposition_id`
+- `number_inpatient`
+- `inpatient_ratio`
+- `diag_1_cat`
+- `prior_visits`
+
+Generated explainability artifacts live in `reports/figures/`: `shap_summary.png`, `shap_waterfall_high_risk.png`, `shap_waterfall_low_risk.png`, and `calibration_curve.png`.
 
 ## Dataset
 
@@ -113,7 +135,7 @@ uvicorn api.serve:app --port 8000
 
 ## Stack
 
-Python · XGBoost · SHAP · scikit-learn · FastAPI · pandas · Pydantic · pytest
+Python · XGBoost · LightGBM · SHAP · scikit-learn · FastAPI · pandas · Pydantic · pytest
 
 ## Author
 
