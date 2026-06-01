@@ -18,6 +18,12 @@ MED_COLS = [
 
 DROP_COLS = ["encounter_id", "patient_nbr", "weight", "payer_code"]
 
+# discharge_disposition_id values that mean the patient left alive to home/facility
+# (vs. expired=11, hospice=13/14) — useful as a direct predictor of return visits
+_DISCHARGE_EXPIRED = {11, 19, 20, 21}  # expired / hospice
+_DISCHARGE_HOME    = {1, 6, 8}         # home / home health / AMA
+_DISCHARGE_FACILITY = {2, 3, 4, 5, 9, 10, 12, 15, 16, 17, 22, 23, 24, 27, 28, 29}
+
 
 def _icd9_category(code):
     """Map ICD-9 code string to a broad clinical category."""
@@ -46,6 +52,10 @@ def _icd9_category(code):
         return "genitourinary"
     if 140 <= n < 240:
         return "neoplasms"
+    if 290 <= n < 320:
+        return "mental"
+    if 320 <= n < 390:
+        return "neurological"
     if 240 <= n < 280 and not (250 <= n < 251):
         return "endocrine"
     return "other"
@@ -91,6 +101,45 @@ def build_features(df: pd.DataFrame) -> pd.DataFrame:
     df["procedures_per_day"] = df["num_procedures"] / df["time_in_hospital"].clip(lower=1)
     df["labs_per_day"] = df["num_lab_procedures"] / df["time_in_hospital"].clip(lower=1)
     df["meds_per_diagnosis"] = df["num_medications"] / df["number_diagnoses"].clip(lower=1)
+
+    # --- Clinical context features (previously unused) ---
+
+    # Admission & discharge type (high-signal clinical variables)
+    for col in ["admission_type_id", "discharge_disposition_id", "admission_source_id"]:
+        if col in df.columns:
+            df[col] = pd.to_numeric(df[col], errors="coerce")
+
+    if "discharge_disposition_id" in df.columns:
+        dd = df["discharge_disposition_id"].fillna(0).astype(int)
+        df["discharge_to_home"]     = dd.isin(_DISCHARGE_HOME).astype(int)
+        df["discharge_to_facility"] = dd.isin(_DISCHARGE_FACILITY).astype(int)
+        df["discharge_expired"]     = dd.isin(_DISCHARGE_EXPIRED).astype(int)
+
+    # A1c test result — strong readmission predictor for diabetics
+    if "A1Cresult" in df.columns:
+        df["a1c_tested"]    = (~df["A1Cresult"].isin(["None", np.nan])).astype(int)
+        df["a1c_high"]      = df["A1Cresult"].isin([">7", ">8"]).astype(int)
+        df["a1c_very_high"] = (df["A1Cresult"] == ">8").astype(int)
+        df.drop(columns=["A1Cresult"], inplace=True)
+
+    # Glucose serum measurement
+    if "max_glu_serum" in df.columns:
+        df["glu_tested"]    = (~df["max_glu_serum"].isin(["None", np.nan])).astype(int)
+        df["glu_high"]      = df["max_glu_serum"].isin([">200", ">300"]).astype(int)
+        df["glu_very_high"] = (df["max_glu_serum"] == ">300").astype(int)
+        df.drop(columns=["max_glu_serum"], inplace=True)
+
+    # Race (clinically relevant in diabetes outcomes literature)
+    if "race" in df.columns:
+        df["race"] = df["race"].fillna("Unknown")
+
+    # Medical specialty — binary: was there a specialist involved?
+    if "medical_specialty" in df.columns:
+        df["has_specialty"] = df["medical_specialty"].notna().astype(int)
+        df.drop(columns=["medical_specialty"], inplace=True)
+
+    # Interaction: insulin changed AND prior inpatient (high-risk signal)
+    df["insulin_changed_x_prior_inpatient"] = (df["insulin_changed"] * df["number_inpatient"]).astype(float)
 
     cat_cols = df.select_dtypes("object").columns.tolist()
     for col in cat_cols:
