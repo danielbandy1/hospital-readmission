@@ -141,6 +141,28 @@ def build_features(df: pd.DataFrame) -> pd.DataFrame:
     # Interaction: insulin changed AND prior inpatient (high-risk signal)
     df["insulin_changed_x_prior_inpatient"] = (df["insulin_changed"] * df["number_inpatient"]).astype(float)
 
+    # Emergency visit ratio — emergencies / all prior visits
+    df["emergency_ratio"] = df["number_emergency"] / (df["prior_visits"] + 1)
+
+    # Age-based risk flags — literature shows 70+ and <40 have distinct readmission profiles
+    df["age_over_70"]  = (df["age_num"] >= 70).astype(int)
+    df["age_under_40"] = (df["age_num"] < 40).astype(int)
+
+    # Interaction: older patients + more prior inpatient = highest-risk cohort
+    df["age_x_prior_inpatient"] = (df["age_num"] * df["number_inpatient"]).astype(float)
+
+    # High-complexity stay flags
+    df["long_stay"]           = (df["time_in_hospital"] > 7).astype(int)
+    df["high_diag_burden"]    = (df["number_diagnoses"] >= 7).astype(int)
+    df["multiple_emergency"]  = (df["number_emergency"] >= 2).astype(int)
+
+    # Primary diagnosis is diabetes itself (direct metabolic admission)
+    if "diag_1_cat" in df.columns:
+        df["diag_diabetes_primary"] = (df["diag_1_cat"] == "diabetes").astype(int)
+
+    # Medication churn score — active meds being adjusted simultaneously
+    df["med_churn_score"] = (df["n_meds_active"] * df["n_meds_changed"]).astype(float)
+
     cat_cols = df.select_dtypes("object").columns.tolist()
     for col in cat_cols:
         df[col] = df[col].astype("category")

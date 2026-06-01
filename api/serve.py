@@ -104,25 +104,35 @@ class RiskResponse(BaseModel):
     readmit_prob_30d: float
     risk_tier: str
     top_risk_factors: list[dict]
+    model_type: str = ""
 
 
-@app.get("/health")
-def health():
-    return {"status": "ok", "model_loaded": _bundle is not None}
+class BatchResponse(BaseModel):
+    predictions: list[RiskResponse]
+    count: int
 
 
-@app.post("/predict", response_model=RiskResponse)
-def predict(record: PatientRecord):
+def _model_type() -> str:
+    if _bundle is None:
+        return "none"
+    return "lgb" if "lgb" in str(MODEL_PATH).lower() else "xgb"
+
+
+def _extract_shap(X: pd.DataFrame) -> np.ndarray:
+    sv = _explainer.shap_values(X)
+    # LightGBM binary returns list[neg_class, pos_class]; XGBoost returns array
+    if isinstance(sv, list):
+        return np.array(sv[1])
+    return np.array(sv)
+
+
+def _predict_one(record: "PatientRecord") -> RiskResponse:
     _load()
     model     = _bundle["model"]
     feat_cols = _bundle["feature_cols"]
 
     row = record.model_dump(by_alias=True)
-    row["encounter_id"] = 0
-    row["patient_nbr"]  = 0
-    row["weight"] = "?"
-    row["payer_code"] = "?"
-    row["readmitted"] = "NO"
+    row.update({"encounter_id": 0, "patient_nbr": 0, "weight": "?", "payer_code": "?", "readmitted": "NO"})
 
     from src.features import build_features
     df = pd.DataFrame([row])
@@ -135,7 +145,6 @@ def predict(record: PatientRecord):
     cat_cols = df.select_dtypes("category").columns.tolist()
     for col in cat_cols:
         df[col] = df[col].cat.codes
-
     for col in feat_cols:
         if col not in df.columns:
             df[col] = 0
@@ -145,14 +154,9 @@ def predict(record: PatientRecord):
     if "calibrator" in _bundle:
         prob = float(_bundle["calibrator"].predict([prob])[0])
 
-    if prob >= 0.35:
-        tier = "HIGH"
-    elif prob >= 0.18:
-        tier = "MODERATE"
-    else:
-        tier = "LOW"
+    tier = "HIGH" if prob >= 0.35 else ("MODERATE" if prob >= 0.18 else "LOW")
 
-    shap_vals = _explainer.shap_values(X)[0]
+    shap_vals = _extract_shap(X)[0]
     factors = sorted(
         [{"feature": f, "shap": round(float(s), 4)} for f, s in zip(feat_cols, shap_vals)],
         key=lambda x: abs(x["shap"]),
@@ -163,4 +167,23 @@ def predict(record: PatientRecord):
         readmit_prob_30d=round(prob, 4),
         risk_tier=tier,
         top_risk_factors=factors,
+        model_type=_model_type(),
     )
+
+
+@app.get("/health")
+def health():
+    return {"status": "ok", "model_loaded": _bundle is not None, "model_type": _model_type(), "model_path": str(MODEL_PATH)}
+
+
+@app.post("/predict", response_model=RiskResponse)
+def predict(record: PatientRecord):
+    return _predict_one(record)
+
+
+@app.post("/predict/batch", response_model=BatchResponse)
+def predict_batch(records: list[PatientRecord]):
+    if len(records) > 500:
+        raise HTTPException(status_code=400, detail="Batch size limit is 500 records.")
+    results = [_predict_one(r) for r in records]
+    return BatchResponse(predictions=results, count=len(results))

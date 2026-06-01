@@ -1,0 +1,20 @@
+{
+  "model": "LightGBM (Optuna tuned)",
+  "oof_auprc": 0.2264,
+  "oof_auc": 0.6781,
+  "n_trials": 100,
+  "n_folds": 5,
+  "best_params": {
+    "learning_rate": 0.06111484335456879,
+    "num_leaves": 264,
+    "max_depth": 7,
+    "min_child_samples": 36,
+    "subsample": 0.5089291224330421,
+    "colsample_bytree": 0.7174179185712035,
+    "reg_alpha": 0.6390666121831633,
+    "reg_lambda": 0.1583599889232421,
+    "min_split_gain": 0.7364037894767494,
+    "scale_pos_weight": 1.3379761493708489,
+    "n_estimators": 1975
+  }
+}

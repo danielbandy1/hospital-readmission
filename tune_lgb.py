@@ -70,7 +70,7 @@ def _objective(trial, X, y, n_folds):
 
     cv      = StratifiedKFold(n_splits=n_folds, shuffle=True, random_state=42)
     oof     = np.zeros(len(y))
-    pruning = optuna.integration.LightGBMPruningCallback(trial, "average_precision", valid_name="valid")
+    pruning = optuna.integration.LightGBMPruningCallback(trial, "average_precision", valid_name="valid_0")
 
     for step, (tr_idx, va_idx) in enumerate(cv.split(X, y)):
         X_tr, X_va = X.iloc[tr_idx], X.iloc[va_idx]
