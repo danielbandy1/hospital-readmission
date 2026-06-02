@@ -1,8 +1,13 @@
 # Hospital 30-Day Readmission Prediction
 
 ![CI](https://github.com/danielbandy1/hospital-readmission/actions/workflows/ci.yml/badge.svg)
+[![ROC-AUC](https://img.shields.io/badge/ROC--AUC-0.727-blue)](#quick-results)
+[![AUPRC](https://img.shields.io/badge/AUPRC-0.285-green)](#quick-results)
+[![API](https://img.shields.io/badge/API-FastAPI-009688)](#deployment)
 
-End-to-end ML system predicting whether a diabetic patient will be readmitted within 30 days of discharge — the core problem driving CMS's Hospital Readmissions Reduction Program (HRRP), which penalizes hospitals up to 3% of Medicare payments for excess readmissions.
+End-to-end healthcare ML system predicting whether a diabetic patient will be readmitted within 30 days of discharge: 74 engineered EHR features, XGBoost risk scoring, SHAP explanations, calibrated risk tiers, and a FastAPI endpoint.
+
+**Result callout:** XGBoost reaches **ROC-AUC 0.727** and **AUPRC 0.285** on 101,766 patient encounters, outperforming the 0.68 AUC baseline while preserving patient-level explainability.
 
 ## The Problem
 
