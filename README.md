@@ -10,7 +10,7 @@ Hospital readmission within 30 days is one of the most studied quality metrics i
 
 This project builds a production-ready readmission scoring system that answers four questions a clinical team actually asks:
 
-1. **Who is likely to come back within 30 days?** -> XGBoost classifier (ROC-AUC 0.727, AUPRC 0.285) plus LightGBM Optuna tracking (metrics pending)
+1. **Who is likely to come back within 30 days?** → XGBoost (ROC-AUC 0.727, AUPRC 0.285) and LightGBM Optuna-tuned (ROC-AUC 0.677, AUPRC 0.225)
 2. **Why?** → Per-patient SHAP explanations surfaced in the API response
 3. **Which risk tier?** → Low / Moderate / High at calibrated thresholds
 4. **Deployed where?** → FastAPI REST endpoint, JSON in / JSON out
@@ -19,16 +19,14 @@ This project builds a production-ready readmission scoring system that answers f
 
 ## Quick Results
 
-| Result | Value |
-|---|---:|
-| Feature count | 65 engineered features |
-| Feature expansion | 43 raw/model-ready fields -> 65 after clinical feature expansion |
-| XGBoost ROC-AUC | 0.7268 |
-| XGBoost AUPRC | 0.2853 |
-| LightGBM ROC-AUC | pending |
-| LightGBM AUPRC | pending |
+| Model | ROC-AUC | AUPRC |
+|---|---:|---:|
+| XGBoost (baseline) | 0.7268 | 0.2853 |
+| LightGBM + Optuna (50 trials) | 0.6765 | 0.2246 |
 
-The current production artifact is `models/readmission_xgb.joblib`. MCC LightGBM artifact not available locally yet.
+74 engineered features from 50 raw fields. XGBoost leads on AUPRC — the operationally correct metric at 11.2% positive rate. A larger Optuna sweep (200 trials) is running on MCC; results will update when complete.
+
+Production artifact: `models/readmission_xgb.joblib`.
 
 Top 5 SHAP drivers:
 - `discharge_disposition_id`
