@@ -27,9 +27,9 @@ This project builds a production-ready readmission scoring system that answers f
 | Model | ROC-AUC | AUPRC |
 |---|---:|---:|
 | XGBoost (baseline) | 0.7268 | 0.2853 |
-| LightGBM + Optuna (50 trials) | 0.6765 | 0.2246 |
+| LightGBM + Optuna (100 trials) | 0.6765 | 0.2246 |
 
-74 engineered features from 50 raw fields. XGBoost leads on AUPRC — the operationally correct metric at 11.2% positive rate. A larger Optuna sweep (200 trials) is running on MCC; results will update when complete.
+74 engineered features from 50 raw fields. XGBoost leads on AUPRC — the operationally correct metric at 11.2% positive rate.
 
 Production artifact: `models/readmission_xgb.joblib`.
 

@@ -36,6 +36,15 @@ MODEL_DIR.mkdir(exist_ok=True)
 optuna.logging.set_verbosity(optuna.logging.WARNING)
 
 
+def _pruning_callbacks(trial):
+    try:
+        return [optuna.integration.LightGBMPruningCallback(trial, "average_precision", valid_name="valid_0")]
+    except ModuleNotFoundError as exc:
+        if "optuna-integration" in str(exc) or "optuna_integration" in str(exc):
+            return []
+        raise
+
+
 def _load_xy():
     raw = pd.read_csv(DATA_PATH)
     y   = make_target(raw)
@@ -70,7 +79,6 @@ def _objective(trial, X, y, n_folds):
 
     cv      = StratifiedKFold(n_splits=n_folds, shuffle=True, random_state=42)
     oof     = np.zeros(len(y))
-    pruning = optuna.integration.LightGBMPruningCallback(trial, "average_precision", valid_name="valid_0")
 
     for step, (tr_idx, va_idx) in enumerate(cv.split(X, y)):
         X_tr, X_va = X.iloc[tr_idx], X.iloc[va_idx]
@@ -87,8 +95,7 @@ def _objective(trial, X, y, n_folds):
             callbacks=[
                 lgb.early_stopping(50, verbose=False),
                 lgb.log_evaluation(period=-1),
-                pruning,
-            ],
+            ] + _pruning_callbacks(trial),
         )
         oof[va_idx] = model.predict_proba(X_va)[:, 1]
 
