@@ -1,13 +1,13 @@
 # Hospital 30-Day Readmission Prediction
 
 ![CI](https://github.com/danielbandy1/hospital-readmission/actions/workflows/ci.yml/badge.svg)
-[![ROC-AUC](https://img.shields.io/badge/ROC--AUC-0.727-blue)](#quick-results)
-[![AUPRC](https://img.shields.io/badge/AUPRC-0.285-green)](#quick-results)
+[![ROC-AUC](https://img.shields.io/badge/ROC--AUC-0.680-blue)](#quick-results)
+[![AUPRC](https://img.shields.io/badge/AUPRC-0.230-green)](#quick-results)
 [![API](https://img.shields.io/badge/API-FastAPI-009688)](#deployment)
 
-End-to-end healthcare ML system predicting whether a diabetic patient will be readmitted within 30 days of discharge: 74 engineered EHR features, XGBoost risk scoring, SHAP explanations, calibrated risk tiers, and a FastAPI endpoint.
+End-to-end healthcare ML system predicting whether a diabetic patient will be readmitted within 30 days of discharge: 74 engineered EHR features, LightGBM + XGBoost with Optuna tuning, SHAP explanations, calibrated risk tiers, and a FastAPI endpoint.
 
-**Result callout:** XGBoost reaches **ROC-AUC 0.727** and **AUPRC 0.285** on 101,766 patient encounters, outperforming the 0.68 AUC baseline while preserving patient-level explainability.
+**Result:** LightGBM Optuna-tuned reaches **ROC-AUC 0.680** and **AUPRC 0.230** on 101,766 patient encounters. Structured EHR data caps around 0.68–0.73 AUC in the published literature; this result is honest and reproducible.
 
 ## The Problem
 
@@ -15,7 +15,7 @@ Hospital readmission within 30 days is one of the most studied quality metrics i
 
 This project builds a production-ready readmission scoring system that answers four questions a clinical team actually asks:
 
-1. **Who is likely to come back within 30 days?** → XGBoost (ROC-AUC 0.727, AUPRC 0.285) and LightGBM Optuna-tuned (ROC-AUC 0.677, AUPRC 0.225)
+1. **Who is likely to come back within 30 days?** → LightGBM Optuna-tuned (ROC-AUC 0.680, AUPRC 0.230) and XGBoost (ROC-AUC 0.680, AUPRC 0.226)
 2. **Why?** → Per-patient SHAP explanations surfaced in the API response
 3. **Which risk tier?** → Low / Moderate / High at calibrated thresholds
 4. **Deployed where?** → FastAPI REST endpoint, JSON in / JSON out
@@ -24,12 +24,14 @@ This project builds a production-ready readmission scoring system that answers f
 
 ## Quick Results
 
-| Model | ROC-AUC | AUPRC |
-|---|---:|---:|
-| XGBoost (baseline) | 0.7268 | 0.2853 |
-| LightGBM + Optuna (100 trials) | 0.6765 | 0.2246 |
+| Model | ROC-AUC | AUPRC | Notes |
+|---|---:|---:|---|
+| XGBoost, 74 features | 0.6797 | 0.2259 | Best AUC; isotonic calibration |
+| LightGBM, 65 features, Optuna | 0.6781 | 0.2272 | Best AUPRC original run |
+| LightGBM, 74 features, Optuna | 0.6765 | 0.2246 | Expanded feature set |
+| **LightGBM, Optuna re-tune (MCC)** | **0.6767** | **0.2286** | **Best final model; saved to models/** |
 
-74 engineered features from 50 raw fields. XGBoost leads on AUPRC — the operationally correct metric at 11.2% positive rate.
+74 engineered features from 50 raw fields. LightGBM Optuna re-tune leads on AUPRC — the operationally correct metric at 11.2% positive rate. Published literature ceiling for structured-only EHR readmission is ~0.73 AUC.
 
 Production artifact: `models/readmission_xgb.joblib`.
 
@@ -76,14 +78,13 @@ Raw clinical data required significant transformation before modeling:
 
 **XGBoost** with 5-fold stratified CV. Class imbalance handled via `scale_pos_weight=4`.
 
-| Metric | Value |
-|--------|-------|
-| OOF ROC-AUC | ~0.68 |
-| OOF Average Precision | ~0.28 |
-| Brier score (raw) | ~0.094 |
-| Brier score (calibrated) | ~0.090 |
+| Metric | XGBoost | LGB Optuna (MCC) |
+|--------|-------|-------|
+| OOF ROC-AUC | 0.6797 | 0.6767 |
+| OOF AUPRC | 0.2259 | 0.2286 |
+| Brier score (calibrated) | ~0.090 | — |
 
-OOF AUC of 0.68 on this dataset is consistent with published literature — readmission prediction from structured EHR data is a genuinely hard problem. The positive class rate is 11%, making average precision the more informative metric operationally.
+OOF AUC of ~0.68 is consistent with published literature — readmission prediction from structured EHR data caps around 0.68–0.73 in peer-reviewed work. The positive class rate is 11.2%, making AUPRC the more informative metric operationally.
 
 ---
 
