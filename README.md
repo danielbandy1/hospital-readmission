@@ -135,6 +135,10 @@ python3 train_pipeline.py
 uvicorn api.serve:app --port 8000
 ```
 
+## VSCode Remote Responsiveness
+
+If VSCode over SSH feels laggy while typing, this repo includes workspace settings at `.vscode/settings.json` to reduce file watching/indexing load by excluding large artifact folders (`models/`, `figures/`, `reports/figures/`, `notebooks/`).
+
 ---
 
 ## Stack
