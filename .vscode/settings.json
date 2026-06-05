@@ -18,6 +18,5 @@
     "**/reports/figures/**",
     "**/figures/**",
     "**/notebooks/**"
-  ],
-  "python.analysis.indexing": false
+  ]
 }
