@@ -1,0 +1,23 @@
+{
+  "files.watcherExclude": {
+    "**/.git/objects/**": true,
+    "**/.git/subtree-cache/**": true,
+    "**/models/**": true,
+    "**/reports/figures/**": true,
+    "**/figures/**": true,
+    "**/notebooks/**": true
+  },
+  "search.exclude": {
+    "**/models/**": true,
+    "**/reports/figures/**": true,
+    "**/figures/**": true,
+    "**/notebooks/**": true
+  },
+  "python.analysis.exclude": [
+    "**/models/**",
+    "**/reports/figures/**",
+    "**/figures/**",
+    "**/notebooks/**"
+  ],
+  "python.analysis.indexing": false
+}
