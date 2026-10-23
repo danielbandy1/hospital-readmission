@@ -88,9 +88,9 @@ def main():
     df = build_features(raw)
     df.drop(columns=["readmitted"], inplace=True)
 
-    cat_cols = df.select_dtypes("category").columns.tolist()
-    for col in cat_cols:
-        df[col] = df[col].cat.codes
+    from src.encoding import fit_maps, encode
+    categorical_maps = fit_maps(df)
+    df = encode(df, categorical_maps)
 
     X = df.astype(np.float32)
     feature_cols = X.columns.tolist()
@@ -151,7 +151,7 @@ def main():
     final_model.fit(X, y, verbose=False)
 
     model_path = MODEL_DIR / "readmission_xgb.joblib"
-    joblib.dump({"model": final_model, "feature_cols": feature_cols, "calibrator": calibrator}, model_path)
+    joblib.dump({"model": final_model, "feature_cols": feature_cols, "calibrator": calibrator, "categorical_maps": categorical_maps}, model_path)
     print(f"Model saved → {model_path}")
 
     if not args.no_shap:

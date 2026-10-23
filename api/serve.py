@@ -19,6 +19,7 @@ import shap
 
 MODEL_DIR = pathlib.Path(__file__).parent.parent / "models"
 MODEL_CANDIDATES = [
+    MODEL_DIR / "readmission_group_holdout.joblib",
     MODEL_DIR / "readmission_lgb.joblib",
     MODEL_DIR / "readmission_xgb.joblib",
     MODEL_DIR / "readmission.pkl",
@@ -115,7 +116,7 @@ class BatchResponse(BaseModel):
 def _model_type() -> str:
     if _bundle is None:
         return "none"
-    return "lgb" if "lgb" in str(MODEL_PATH).lower() else "xgb"
+    return "lgb" if "lgbm" in type(_bundle["model"]).__name__.lower() else "xgb"
 
 
 def _extract_shap(X: pd.DataFrame) -> np.ndarray:
@@ -142,9 +143,10 @@ def _predict_one(record: "PatientRecord") -> RiskResponse:
     except Exception as e:
         raise HTTPException(status_code=422, detail=f"Feature error: {e}")
 
-    cat_cols = df.select_dtypes("category").columns.tolist()
-    for col in cat_cols:
-        df[col] = df[col].cat.codes
+    if 'categorical_maps' not in _bundle:
+        raise HTTPException(status_code=503, detail='Legacy artifact lacks training category maps. Run portfolio_check.py to build a consistent demo bundle.')
+    from src.encoding import encode
+    df = encode(df, _bundle['categorical_maps'])
     for col in feat_cols:
         if col not in df.columns:
             df[col] = 0

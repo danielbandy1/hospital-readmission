@@ -8,3 +8,9 @@ dist/
 build/
 .ipynb_checkpoints/
 *.ipynb_checkpoints
+
+# ORION local reproduction outputs
+.venv/
+portfolio_results/*.joblib
+models/readmission_group_holdout.joblib
+.pytest_cache/

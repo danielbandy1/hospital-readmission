@@ -1,0 +1,19 @@
+{
+  "source_url": "https://archive.ics.uci.edu/static/public/296/diabetes+130-us+hospitals+for+years+1999-2008.zip",
+  "source_sha256": "f82ac129da2ddd2299391ff6fbae3a6a58b3edcf59ac9d7bd480c00fe453112a",
+  "raw_encounters": 101766,
+  "unique_patients": 71518,
+  "positive_encounters": 11357,
+  "base_rate": 0.11159915885462728,
+  "engineered_features": 74,
+  "train_rows": 81613,
+  "test_rows": 20153,
+  "patient_overlap": 0,
+  "model": "NEW LightGBM 100-tree patient-disjoint holdout; no tuning/calibration",
+  "seed": 42,
+  "test_auc": 0.671658983497417,
+  "test_average_precision": 0.20876688295694418,
+  "test_base_rate": 0.10673348881059892,
+  "test_brier": 0.09122848560755652,
+  "legacy_headline_reproduced": false
+}

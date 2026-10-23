@@ -18,6 +18,7 @@ from src.features import build_features
 
 MODEL_DIR = pathlib.Path("models")
 MODEL_CANDIDATES = [
+    MODEL_DIR / "readmission_group_holdout.joblib",
     MODEL_DIR / "readmission_lgb.joblib",
     MODEL_DIR / "readmission_xgb.joblib",
 ]
@@ -51,8 +52,10 @@ def _predict(bundle, explainer, row_dict):
     df = pd.DataFrame([row])
     df = build_features(df)
     df.drop(columns=["readmitted"], errors="ignore", inplace=True)
-    for col in df.select_dtypes("category").columns:
-        df[col] = df[col].cat.codes
+    if 'categorical_maps' not in bundle:
+        raise ValueError('Legacy artifact lacks training category maps. Run portfolio_check.py first.')
+    from src.encoding import encode
+    df = encode(df, bundle['categorical_maps'])
     feat_cols = bundle["feature_cols"]
     for col in feat_cols:
         if col not in df.columns:
