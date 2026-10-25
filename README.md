@@ -10,6 +10,8 @@ AUTHORED BY ORION — local repairs for Daniel's review, 23 October 2026.
 bash reproduce.sh
 ```
 
+See [INTERVIEW_STUDY_GUIDE.md](INTERVIEW_STUDY_GUIDE.md) for clinical domain context, patient-level data leakage defense, 74-feature breakdown, threshold selection for hospital intervention teams, and mock clinical ML interview Q&A.
+
 Python 3.13 and Linux/aarch64 tested. The command creates a fresh `.venv`, installs exact pins from `requirements-portfolio.lock`, fetches the hash-pinned public UCI archive if absent, fits a small deterministic LightGBM baseline and runs feature/API regression tests. Threads are capped at two. It does not log in, publish, launch a server or train on private data. First installation/download needs internet; the data cache makes subsequent computation offline.
 
 ## Data and licence
